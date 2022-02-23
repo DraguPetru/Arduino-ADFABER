@@ -1,0 +1,173 @@
+
+
+
+
+#include <I2Cdev.h>
+#include <MediaMovel.h> //Library for mobile media use
+#include <Ultrasonic.h>
+#include <MPU6050.h>
+#include "Wire.h" //Library for I2C communication
+#include <math.h> //Includes library for using the atan() function
+#include <Wtv020sd16p.h> //Includes MP3 library
+
+#define RAD(degree) ((degree*3.1415926)/180) //Convert radians to degrees
+#define GRAU(rad) ((rad*180)/3.1415926) //Convert from degrees to radians
+//Converts any voltage value between 0 and 5V, to the range 0 to 255
+#define TENSION(voltage) ((255*voltage)/5.0) 
+#define buzzer pin 2
+#define vibracall_pin 3
+#define MINIMUM_distance 40 //Defines minimum detection distance
+#define TOP_LIMIT ANGLE 30 //Value in degrees
+
+//cursor
+int resetPin = 10; //Reset pin
+int clockPin = 9; //Clock Pin
+int dataPin = 11; //Data pin (DI)
+int busyPin = 12; //Busy pin
+
+//Button
+int bottonPin = 4; // On/Off Pin
+int bottonState;
+int enabled=HIGH;
+
+ultrasonic ultra(8, 7); //Echo and trigger
+MM mms_1(20), mms_2(30); //Instants two objects of type MM, with 15 and 50 samples respectively
+Wtv020sd16p wtv020sd16p(resetPin,clockPin,dataPin,busyPin); //Installs four MP3 library class objects
+
+MPU6050 accelgyro; //Instantiates accelgyro object, type MPU6050
+
+//Auxiliary variables
+int16_t ax, ay, az, gx, gy, gz;
+float angleX, HEIGHT_HEIGHT=170.0, DISTANCE_DETECATION=200.0
+uint16_t distanceHorizontal, readUltra;
+bool flag; //Skew indicator
+char buf;//Variable storing the characters received from the MP3
+
+float ANGLE_DETECTION(float value){ //Function to calculate the detection angle
+  return (GRAU(atan(value)));
+}
+
+void setup(){
+    Wire.begin(); //Initiate I2C communication
+    Serial.begin(9600); //Initialize serial
+    accelgyro.initialize(); //Initialize accelgyro object
+    pinMode(pin_buzzer, OUTPUT);
+    pinMode(pin_vibracall, OUTPUT);
+    pinMode(bottonPin, INPUT_PULLUP);
+    //Initialize the WTV020 module
+    wtv020sd16p.reset();
+    //Initial information 
+    menu_initial();
+    //Test connection, in case of success, give a simple beep
+    if(accelgyro.testConnection()){
+      tone( pin_buzzer, 2500);
+      delay(500);
+      noTone(buzzer_pin);
+    }
+    // In case of connection failure, give two beeps
+    else{
+      tone(buzzer_pin, 3500);   
+      delay(150);  
+      noTone(buzzer_pin);
+      delay(500);
+      tone(buzzer_pin, 3500);
+      delay(150);  
+      noTone(buzzer_pin);
+    }
+}
+
+void loop(){
+  stateboton=digitalRead(bottonPin);
+  if (bottonPin=LOW){
+    enabled=!enabled;
+    delay(20);
+  }
+  if (activated==LOW){
+here:    
+    accelgyro.getMotion6(&ax, &ay, &az, &gx, &gy, &gz); //Obtm accelerometer and gyroscope values 
+        
+    if(ax<-16400) ax=-16400; //Limits "ax" values
+    if(ax>=0){ //Seither inclined up or straight device
+      flag=0; //Indicator of incline up or straight
+      //Converts "ax" values in the range 0 16400, to values between 0 and 90
+      anguloEixoX=float((90*(mms_1.calculaMMS(ax)))/16400);
+      if(x_angle>UP_ANGLE_LIMIT){ //Check Up Angle Limit
+        noTone(buzzer pin); //Tone off 
+        analogWrite(pin_vibracall, 0); //Turns off vibracall 
+        goto aqui; //Loads to "here" label
+      }
+    }
+    else{ //If device is tilted down
+      flag=1; //Flag Downward Tilt Indicator
+      //Convert "ax" values in the range 0 -16400, to values between 0 and 90
+      anguloEixoX=float((90*(mms_1.calculaMMS(ax)))/(-16400));
+    }
+
+    //Checks if the person is leaning towards the ground    
+    if((x_axis_angle>EX_ANGLE_DECISION(PERSONHEIGHT/DISTANCE_DECISION)) && (flag==1)){
+      tone(pin_buzzer, 2500); //Detect cho - Turn on tone  
+      analogWrite(pin_vibracall, 0); //Turn off vibracall
+    }
+    else{
+      noTone(buzzer_pin); //Turns off tone  
+         
+      readUltra=mms_2.calculatesMMS(ultra.centimetersUltra()); // Read ultrasonic
+      HorizontalDistance=readUltra*(cos(RAD(anguloEixoX))); //Calculates horizontal distance 
+
+      //CHECK MP3
+      if ((horizontalDistance>2000) && (horizontalDistance<3000)) {
+        wtv020sd16p.playVoice(0);
+      //Playback file 1
+      wtv020sd16p.asyncPlayVoice(1); //You are more than 2 meters away from an obstacle!
+      delay(3000); 
+      wtv020sd16p.stopVoice();
+      delay(2000);
+      menu_initial();
+      }
+      if ((distanceHorizontal>1000)&& (distanceHorizontal<2000)){
+        wtv020sd16p.playVoice(0);
+      //Playback file 2
+      wtv020sd16p.asyncPlayVoice(2); //Attempt obstacle less than 2 meters!
+      delay(3000); 
+      wtv020sd16p.stopVoice();
+      delay(2000);
+      menu_initial();
+      }
+      
+      if ((distanceHorizontal>200)&& (distanceHorizontal<1000)){
+        wtv020sd16p.playVoice(0);
+      //Playback file 2
+      wtv020sd16p.asyncPlayVoice(3); //Careful obstacle less than 1 meter away!
+   delay(3000); 
+      wtv020sd16p.stopVoice();
+      delay(2000);
+      menu_initial();
+      }
+      
+         
+      //Limits values of distanceHorizontal
+      if(max_distance<min_distance) max_distance=min_distance;
+      if(offsets distance>DISTANCE_DETECCAO){
+        analogWrite(pin_vibracall, 0); //Turns off vibracall      
+      }
+      //Varies the voltage on the vibracall from 2.0V 4.0V, according to the detected distance, from 
+      //MINIMUM_DISTANCE DISTANCE                                                             
+      else analogWrite(pin_vibracall, map(distanceHorizontal, DISTANCIA_DETECCAO, DISTANCIA_MINIMADO, TENSAO(1.5), TENSAO(4.0))) 
+    }  
+    Serial.print(anguloEixoX);
+    Serial.print(',');
+    Serial.print(ANGULO_DETECCAO(HEIGHT_PERSON/DISTANCE_DETECCAO));
+    Serial.print(',');
+    Serial.println(distanceHorizontal);
+    //delay(1);
+  }
+}
+//Show options menu
+void menu_initial()
+{
+  Serial.println("Type: ");
+  Serial.println("1 - Play the file 0001.ad4")
+  Serial.println("2 - Plays the file 0002.ad4");
+  Serial.println("3 - Plays the file 0003.ad4");
+  Serial.println();
+}
